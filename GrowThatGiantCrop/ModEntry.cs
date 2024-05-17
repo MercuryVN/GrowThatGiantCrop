@@ -62,17 +62,52 @@ internal sealed class ModEntry : Mod
         }
     }
 
-    private static string AttempGrowGiantCrop(Farmer player)
+    private string AttempGrowGiantCrop(Farmer player)
     {
         Vector2 playerTile = player.Tile;
         string result = "No eligible giant crop tiles";
-        if (Game1.currentLocation == null) return result;
-        if (!Game1.currentLocation.terrainFeatures.TryGetValue(playerTile, out TerrainFeature terrainFeature)) return result;
-        if (terrainFeature is not HoeDirt dirt || dirt.crop == null) return result;
-        if (!dirt.crop.TryGetGiantCrops(out IReadOnlyList<KeyValuePair<string, GiantCropData>>? giantCrops)) return result;
-        if (!dirt.isWatered() && dirt.crop.currentPhase.Value != dirt.crop.phaseDays.Count - 1) return result;
+        if (Game1.currentLocation == null)
+        {
+            Monitor.Log("Null location", LogLevel.Trace);
+            return result;
+        }
+        if (!Game1.currentLocation.terrainFeatures.TryGetValue(playerTile, out TerrainFeature terrainFeature))
+        {
+            Monitor.Log("Null Terrain", LogLevel.Trace);
+            return result;
+        }
+        if (terrainFeature is not HoeDirt dirt || dirt.crop == null)
+        {
+            if (terrainFeature is not HoeDirt) Monitor.Log("Not how dirt", LogLevel.Trace);
+            else Monitor.Log("Null crop", LogLevel.Trace);
+            return result;
+        }
+        if (!dirt.crop.TryGetGiantCrops(out IReadOnlyList<KeyValuePair<string, GiantCropData>>? giantCrops))
+        {
+            Monitor.Log($"{ItemRegistry.GetData(dirt.crop.indexOfHarvest.Value).InternalName} is not giant crop", LogLevel.Trace);
+            return result;
+        }
+        if (!dirt.isWatered())
+        {
+            Monitor.Log("Not watered", LogLevel.Trace);
+            return result;
+        }
+        if (!dirt.crop.RegrowsAfterHarvest() && dirt.crop.currentPhase.Value != dirt.crop.phaseDays.Count - 1)
+        {
+            Monitor.Log("Not fully grown", LogLevel.Trace);
+            return result;
+        }
+        if (dirt.crop.RegrowsAfterHarvest() && !dirt.crop.fullyGrown.Value)
+        {
+            Monitor.Log("Not fully grown", LogLevel.Trace);
+            return result;
+        }
         ParsedItemData cropData = ItemRegistry.GetData(dirt.crop.indexOfHarvest.Value);
-        if (!CanGrowGiantCrop(cropData.QualifiedItemId, playerTile)) return result;
+        if (!CanGrowGiantCrop(cropData.QualifiedItemId, playerTile))
+        {
+            Monitor.Log("Not top-left corner", LogLevel.Trace);
+            return result;
+        }
         GrowGiantCrop(playerTile, giantCrops);
         result = $"{cropData.InternalName} grows into giant crop at {playerTile}";
         return result;
@@ -91,7 +126,8 @@ internal sealed class ModEntry : Mod
                 if (dirt.crop == null) return false;
                 if (!dirt.crop.TryGetGiantCrops(out _)) return false;
                 if (ItemRegistry.GetData(dirt.crop.indexOfHarvest.Value).QualifiedItemId != cropId) return false;
-                if (dirt.crop.currentPhase.Value != dirt.crop.phaseDays.Count - 1) return false;
+                if (!dirt.crop.RegrowsAfterHarvest() && dirt.crop.currentPhase.Value != dirt.crop.phaseDays.Count - 1) return false;
+                if (dirt.crop.RegrowsAfterHarvest() && !dirt.crop.fullyGrown.Value) return false;
                 if (!dirt.isWatered()) return false;
             }
         }
