@@ -78,7 +78,7 @@ internal sealed class ModEntry : Mod
         }
         if (terrainFeature is not HoeDirt dirt || dirt.crop == null)
         {
-            if (terrainFeature is not HoeDirt) Monitor.Log("Not how dirt", LogLevel.Trace);
+            if (terrainFeature is not HoeDirt) Monitor.Log("Not hoe dirt", LogLevel.Trace);
             else Monitor.Log("Null crop", LogLevel.Trace);
             return result;
         }
@@ -146,10 +146,10 @@ internal sealed class ModEntry : Mod
                 for (int j = 0; j < value.TileSize.Y; j++)
                 {
                     Vector2 cropTile = new(tile.X + i, tile.Y + j);
-                    (Game1.getFarm().terrainFeatures[cropTile] as HoeDirt)!.crop = null;
+                    (Game1.currentLocation.terrainFeatures[cropTile] as HoeDirt)!.crop = null;
                 }
             }
-            Game1.getFarm().resourceClumps.Add(giantCrop);
+            Game1.currentLocation.resourceClumps.Add(giantCrop);
             break;
         }
     }
